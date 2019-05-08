@@ -1,11 +1,12 @@
 package org.corfudb.protocols.wireprotocol;
 
+import org.corfudb.protocols.logprotocol.LogEntry;
+
+import javax.annotation.Nonnull;
 import java.util.UUID;
 
-import org.corfudb.protocols.logprotocol.LogEntry;
-import org.corfudb.runtime.CorfuRuntime;
-
-/** An interface to log data entries.
+/**
+ * An interface to log data entries.
  * Log data entries represent data stored in the actual log,
  * with convenience methods for software to retrieve the
  * stored information.
@@ -13,12 +14,12 @@ import org.corfudb.runtime.CorfuRuntime;
  */
 public interface ILogData extends IMetadata, Comparable<ILogData> {
 
-    Object getPayload(CorfuRuntime t);
+    Object getPayload();
 
     DataType getType();
 
     @Override
-    default int compareTo(ILogData o) {
+    default int compareTo(@Nonnull ILogData o) {
         return getGlobalAddress().compareTo(o.getGlobalAddress());
     }
 
@@ -68,15 +69,15 @@ public interface ILogData extends IMetadata, Comparable<ILogData> {
     /**
      * Return whether or not this entry is a log entry.
      */
-    default boolean isLogEntry(CorfuRuntime runtime) {
-        return getPayload(runtime) instanceof LogEntry;
+    default boolean isLogEntry() {
+        return getPayload() instanceof LogEntry;
     }
 
     /**
      * Return the payload as a log entry.
      */
-    default LogEntry getLogEntry(CorfuRuntime runtime) {
-        return (LogEntry) getPayload(runtime);
+    default LogEntry getLogEntry() {
+        return (LogEntry) getPayload();
     }
 
     /**

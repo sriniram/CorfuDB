@@ -108,7 +108,7 @@ public class AddressSpaceViewTest extends AbstractViewTest {
                         Collections.singletonMap(streamA, Address.NO_BACKPOINTER)),
                 "hello world".getBytes());
 
-        assertThat(rt.getAddressSpaceView().read(0L).getPayload(getRuntime()))
+        assertThat(rt.getAddressSpaceView().read(0L).getPayload())
                 .isEqualTo("hello world".getBytes());
 
         assertThat(rt.getAddressSpaceView().read(0L).containsStream(streamA))
@@ -189,7 +189,7 @@ public class AddressSpaceViewTest extends AbstractViewTest {
         Token token = new Token(rt.getLayoutView().getLayout().getEpoch(), ADDRESS_0);
         rt.getAddressSpaceView().write(token, testPayload);
 
-        assertThat(rt.getAddressSpaceView().read(ADDRESS_0).getPayload(getRuntime()))
+        assertThat(rt.getAddressSpaceView().read(ADDRESS_0).getPayload())
                 .isEqualTo("hello world".getBytes());
 
 
@@ -206,11 +206,11 @@ public class AddressSpaceViewTest extends AbstractViewTest {
 
         Map<Long, ILogData> m = rt.getAddressSpaceView().read(rs);
 
-        assertThat(m.get(ADDRESS_0).getPayload(getRuntime()))
+        assertThat(m.get(ADDRESS_0).getPayload())
                 .isEqualTo("hello world".getBytes());
-        assertThat(m.get(ADDRESS_1).getPayload(getRuntime()))
+        assertThat(m.get(ADDRESS_1).getPayload())
                 .isEqualTo("1".getBytes());
-        assertThat(m.get(ADDRESS_2).getPayload(getRuntime()))
+        assertThat(m.get(ADDRESS_2).getPayload())
                 .isEqualTo("3".getBytes());
     }
 
@@ -228,7 +228,7 @@ public class AddressSpaceViewTest extends AbstractViewTest {
         Token token = new Token(rt.getLayoutView().getLayout().getEpoch(), ADDRESS_0);
         rt.getAddressSpaceView().write(token, testPayload);
 
-        assertThat(rt.getAddressSpaceView().read(ADDRESS_0).getPayload(getRuntime()))
+        assertThat(rt.getAddressSpaceView().read(ADDRESS_0).getPayload())
                 .isEqualTo("hello world".getBytes());
 
         Range range = Range.closed(ADDRESS_0, ADDRESS_2);
@@ -236,7 +236,7 @@ public class AddressSpaceViewTest extends AbstractViewTest {
 
         Map<Long, ILogData> m = rt.getAddressSpaceView().read(addresses);
 
-        assertThat(m.get(ADDRESS_0).getPayload(getRuntime()))
+        assertThat(m.get(ADDRESS_0).getPayload())
                 .isEqualTo("hello world".getBytes());
         assertThat(m.get(ADDRESS_1).isHole()).isTrue();
         assertThat(m.get(ADDRESS_2).isHole()).isTrue();
@@ -300,6 +300,6 @@ public class AddressSpaceViewTest extends AbstractViewTest {
                 ContiguousSet.create(Range.closed(0L, numAddresses - 1), DiscreteDomain.longs()));
 
         readResult.forEach((addr, data) ->
-                assertThat(data.getPayload(rt)).isEqualTo((testString + addr).getBytes()));
+                assertThat(data.getPayload()).isEqualTo((testString + addr).getBytes()));
     }
 }

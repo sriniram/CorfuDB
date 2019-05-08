@@ -442,9 +442,9 @@ public class Utils {
      *
      * @param logData Data entry to print
      */
-    public static void printLogAnatomy(CorfuRuntime runtime, ILogData logData) {
+    public static void printLogAnatomy(ILogData logData) {
         try {
-            LogEntry le = RecoveryUtils.deserializeLogData(runtime, logData);
+            LogEntry le = RecoveryUtils.deserializeLogData(logData);
             if (le.getType() == LogEntry.LogEntryType.SMR) {
                 log.info("printLogAnatomy: Number of Streams: 1");
                 log.info("printLogAnatomy: Number of Entries: 1");

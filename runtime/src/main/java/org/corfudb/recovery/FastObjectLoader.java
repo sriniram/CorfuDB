@@ -463,7 +463,7 @@ public class FastObjectLoader {
     private void updateCorfuObject(ILogData logData) {
         LogEntry logEntry;
         try {
-            logEntry = deserializeLogData(runtime, logData);
+            logEntry = deserializeLogData(logData);
         } catch (InterruptedException ie) {
             throw new UnrecoverableCorfuInterruptedError(ie);
         } catch (Exception e) {
@@ -578,7 +578,7 @@ public class FastObjectLoader {
     private void handleStartCheckPoint(long address, ILogData logData, UUID streamId,
                                        UUID checkPointId, StreamMetaData streamMeta) {
         try {
-            CheckpointEntry logEntry = (CheckpointEntry) deserializeLogData(runtime, logData);
+            CheckpointEntry logEntry = (CheckpointEntry) deserializeLogData(logData);
             long snapshotAddress = getSnapShotAddressOfCheckPoint(logEntry);
             long startAddress = getStartAddressOfCheckPoint(logData);
 

@@ -846,7 +846,7 @@ public class ClusterReconfigIT extends AbstractIT {
                 .getLogUnitClient("localhost:9002")
                 .readAll(getRangeAddressAsList(startAddress, endAddress))
                 .get().getAddresses().values()) {
-            assertThat(logData.getPayload(runtime))
+            assertThat(logData.getPayload())
                     .isEqualTo(Integer.toString(verificationCounter++).getBytes());
         }
 
@@ -927,7 +927,7 @@ public class ClusterReconfigIT extends AbstractIT {
                 .getLogUnitClient("localhost:9002")
                 .readAll(getRangeAddressAsList(startAddress, endAddress)).get()
                 .getAddresses().values()) {
-            assertThat(logData.getPayload(runtime))
+            assertThat(logData.getPayload())
                     .isEqualTo(Integer.toString(verificationCounter++).getBytes());
         }
 
@@ -1015,7 +1015,7 @@ public class ClusterReconfigIT extends AbstractIT {
         final int startAddress = 0;
         final int endAddress = 3;
         for (int i = startAddress; i <= endAddress; i++) {
-            assertThat(runtime.getAddressSpaceView().read(i).getPayload(runtime))
+            assertThat(runtime.getAddressSpaceView().read(i).getPayload())
                     .isEqualTo(Integer.toString(i).getBytes());
         }
 
@@ -1205,8 +1205,7 @@ public class ClusterReconfigIT extends AbstractIT {
         // Addresses should correspond to: start, continuation and end records. (total 3 records)
         assertThat(checkpointAddressSpace.getAddressMap().getLongCardinality()).isEqualTo(numCheckpointRecordsDefault);
         CheckpointEntry cpEntry = (CheckpointEntry) runtime2.getAddressSpaceView()
-                .read(checkpointAddressSpace.getHighestAddress())
-                .getPayload(runtime2);
+                .read(checkpointAddressSpace.getHighestAddress()).getPayload();
         assertThat(cpEntry.getDict().get(CheckpointEntry.CheckpointDictKey.START_LOG_ADDRESS)).
                 isEqualTo(String.valueOf(numEntries-1));
 

@@ -113,7 +113,7 @@ public class LogUnitHandlerTest extends AbstractClientTest {
         LogData r = client.read(0).get().getAddresses().get(0L);
         assertThat(r.getType())
                 .isEqualTo(DataType.DATA);
-        assertThat(r.getPayload(new CorfuRuntime()))
+        assertThat(r.getPayload())
                 .isEqualTo(testString);
     }
 
@@ -278,7 +278,7 @@ public class LogUnitHandlerTest extends AbstractClientTest {
         LogData r = client.read(0).get().getAddresses().get(0L);
         assertThat(r.getType())
                 .isEqualTo(DataType.DATA);
-        assertThat(r.getPayload(new CorfuRuntime()))
+        assertThat(r.getPayload())
                 .isEqualTo(testString);
 
         byte[] testString2 = "hello world 2".getBytes();
@@ -286,7 +286,7 @@ public class LogUnitHandlerTest extends AbstractClientTest {
         r = client.read(0).get().getAddresses().get(0L);
         assertThat(r.getType())
                 .isEqualTo(DataType.DATA);
-        assertThat(r.getPayload(new CorfuRuntime()))
+        assertThat(r.getPayload())
                 .isEqualTo(testString2);
     }
 
@@ -299,7 +299,7 @@ public class LogUnitHandlerTest extends AbstractClientTest {
         LogData r = client.read(0).get().getAddresses().get(0L);
         assertThat(r.getType())
                 .isEqualTo(DataType.DATA);
-        assertThat(r.getPayload(new CorfuRuntime()))
+        assertThat(r.getPayload())
                 .isEqualTo(testString);
 
         byte[] testString2 = "hello world 2".getBytes();
@@ -313,7 +313,7 @@ public class LogUnitHandlerTest extends AbstractClientTest {
         r = client.read(0).get().getAddresses().get(0L);
         assertThat(r.getType())
                 .isEqualTo(DataType.DATA);
-        assertThat(r.getPayload(new CorfuRuntime()))
+        assertThat(r.getPayload())
                 .isEqualTo(testString);
     }
 
@@ -324,7 +324,7 @@ public class LogUnitHandlerTest extends AbstractClientTest {
         client.write(0, new IMetadata.DataRank(1), testString, Collections.emptyMap()).get();
         LogData r = client.read(0).get().getAddresses().get(0L);
         assertThat(r.getType()) .isEqualTo(DataType.DATA);
-        assertThat(r.getPayload(new CorfuRuntime()))
+        assertThat(r.getPayload())
                 .isEqualTo(testString);
 
         try {
@@ -338,11 +338,11 @@ public class LogUnitHandlerTest extends AbstractClientTest {
             ReadResponse read = ex.getReadResponse();
             LogData log = read.getAddresses().get(0l);
             assertThat(log.getType()).isEqualTo(DataType.DATA);
-            assertThat(log.getPayload(new CorfuRuntime())).isEqualTo(testString);;
+            assertThat(log.getPayload()).isEqualTo(testString);;
         }
         r = client.read(0).get().getAddresses().get(0L);
         assertThat(r.getType()).isEqualTo(DataType.DATA);
-        assertThat(r.getPayload(new CorfuRuntime())).isEqualTo(testString);
+        assertThat(r.getPayload()).isEqualTo(testString);
     }
 
     private ILogData.SerializationHandle createEmptyData(long position, DataType type, IMetadata.DataRank rank) {

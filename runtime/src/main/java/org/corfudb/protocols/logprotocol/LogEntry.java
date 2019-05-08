@@ -1,6 +1,13 @@
 package org.corfudb.protocols.logprotocol;
 
 import io.netty.buffer.ByteBuf;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import org.corfudb.protocols.wireprotocol.ILogData;
+import org.corfudb.util.serializer.ICorfuSerializable;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -8,32 +15,17 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import org.corfudb.protocols.wireprotocol.ILogData;
-import org.corfudb.runtime.CorfuRuntime;
-import org.corfudb.util.serializer.ICorfuSerializable;
-
 
 /**
  * Created by mwei on 1/8/16.
  */
-@ToString(exclude = {"runtime", "entry"})
+@ToString(exclude = {"entry"})
 @NoArgsConstructor
 public class LogEntry implements ICorfuSerializable {
 
     static final Map<Byte, LogEntryType> typeMap =
             Arrays.stream(LogEntryType.values())
                     .collect(Collectors.toMap(LogEntryType::asByte, Function.identity()));
-
-    /**
-     * The runtime to use.
-     */
-    @Setter
-    protected CorfuRuntime runtime;
 
     /**
      * The type of log entry.
@@ -64,13 +56,12 @@ public class LogEntry implements ICorfuSerializable {
      * @param b The buffer to deserialize.
      * @return A LogEntry.
      */
-    public static ICorfuSerializable deserialize(ByteBuf b, CorfuRuntime rt) {
+    public static ICorfuSerializable deserialize(ByteBuf b) {
         try {
             LogEntryType let = typeMap.get(b.readByte());
             LogEntry l = let.entryType.newInstance();
             l.type = let;
-            l.runtime = rt;
-            l.deserializeBuffer(b, rt);
+            l.deserializeBuffer(b);
             return l;
         } catch (InstantiationException | IllegalAccessException ie) {
             throw new RuntimeException("Error deserializing entry", ie);
@@ -83,7 +74,7 @@ public class LogEntry implements ICorfuSerializable {
      *
      * @param b The remaining buffer.
      */
-    void deserializeBuffer(ByteBuf b, CorfuRuntime rt) {
+    void deserializeBuffer(ByteBuf b) {
         // In the base case, we don't do anything.
     }
 
