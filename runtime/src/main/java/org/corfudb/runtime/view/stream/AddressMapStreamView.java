@@ -83,6 +83,9 @@ public class AddressMapStreamView extends AbstractQueuedStreamView {
                 if (ld.containsStream(this.id) && ld.getType() == DataType.DATA) {
                     addToResolvedQueue(getCurrentContext(), currentRead, ld);
                     readNext = false;
+                } else if (ld.isCompacted()) {
+                    log.trace("getNextEntry[{}]: the data for address {} is compacted. Skip.", this, currentRead);
+                    readNext = true;
                 } else {
                     log.trace("getNextEntry[{}]: the data for address {} does not belong to this stream. Skip.",
                             this, currentRead);

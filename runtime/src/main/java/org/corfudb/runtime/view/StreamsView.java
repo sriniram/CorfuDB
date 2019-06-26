@@ -38,9 +38,6 @@ public class StreamsView extends AbstractView {
      */
     public static final String CHECKPOINT_SUFFIX = "_cp";
 
-    @Getter
-    Multimap<UUID, IStreamView> streamCache = Multimaps.synchronizedMultimap(HashMultimap.create());
-
     public StreamsView(final CorfuRuntime runtime) {
         super(runtime);
     }
@@ -77,7 +74,6 @@ public class StreamsView extends AbstractView {
     public IStreamView get(UUID stream, StreamOptions options) {
         IStreamView streamView = runtime.getLayoutView().getLayout().getLatestSegment()
                 .getReplicationMode().getStreamView(runtime, stream, options);
-        streamCache.put(stream, streamView);
         return streamView;
     }
 

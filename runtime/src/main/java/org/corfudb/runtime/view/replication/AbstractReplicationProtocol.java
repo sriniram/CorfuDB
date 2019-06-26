@@ -4,8 +4,13 @@ import javax.annotation.Nonnull;
 
 import lombok.extern.slf4j.Slf4j;
 import org.corfudb.protocols.wireprotocol.ILogData;
+import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.exceptions.HoleFillRequiredException;
 import org.corfudb.runtime.view.RuntimeLayout;
+import org.corfudb.runtime.view.StreamsView;
+
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Created by mwei on 4/6/17.
@@ -61,4 +66,18 @@ public abstract class AbstractReplicationProtocol implements IReplicationProtoco
      * @param globalAddress The address to hole fill.
      */
     protected abstract void holeFill(RuntimeLayout runtimeLayout, long globalAddress);
+
+    /**
+     * Update compaction mark in the AdderssSpaceView.
+     * Compaction mark could only monotonically grow.
+     * @param runtime         corfu runtime
+     * @param compactionMark  compaction mark
+     */
+    protected void updateCompactionMark(CorfuRuntime runtime, long compactionMark) {
+        // Compaction mark could only monotonically grow.
+        if (runtime.getAddressSpaceView().getCompactionMark() < compactionMark) {
+            runtime.getAddressSpaceView().setCompactionMark(compactionMark);
+            log.trace("Compaction mark is updated to {}", compactionMark);
+        }
+    }
 }

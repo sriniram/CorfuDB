@@ -105,6 +105,9 @@ public class StreamLogCompactorTest extends AbstractCorfuTest {
         final int numSegments = 2;
         final int numIter = StreamLogParams.RECORDS_PER_SEGMENT * numSegments + 1;
 
+        final UUID streamAId = CorfuRuntime.getStreamID("s1");
+        final UUID streamBId = CorfuRuntime.getStreamID("s2");
+
         final long skipAddress = 25L;
         List<LogData> streamEntries = new ArrayList<>();
         List<LogData> garbageEntries = new ArrayList<>();

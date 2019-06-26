@@ -881,7 +881,7 @@ public class CorfuMapTest extends AbstractViewTest {
         int garbageSize = 1;
         assertThat(garbageInformer.getGarbageReceivingQueue().size()).isEqualTo(garbageSize);
 
-        garbageInformer.gc();
+        garbageInformer.gcUnsafe();
         assertThat(garbageInformer.getGarbageReceivingQueue().size()).isZero();
     }
 

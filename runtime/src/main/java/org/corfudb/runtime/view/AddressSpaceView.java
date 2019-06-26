@@ -9,8 +9,10 @@ import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.netty.handler.timeout.TimeoutException;
-import lombok.Data;
+
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.corfudb.protocols.logprotocol.SMRGarbageEntry;
 import org.corfudb.protocols.wireprotocol.DataType;
@@ -43,7 +45,6 @@ import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -53,7 +54,6 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -77,6 +77,10 @@ public class AddressSpaceView extends AbstractView {
     final private long cacheKeySize = MetricsUtils.sizeOf.deepSizeOf(new Long(0));
 
     final private long defaultMaxCacheEntries = 5000;
+
+    @Getter
+    @Setter
+    private volatile long compactionMark = Address.NON_ADDRESS;
 
     private final ReadOptions defaultReadOptions = ReadOptions.builder()
             .waitForHole(true)
@@ -134,13 +138,6 @@ public class AddressSpaceView extends AbstractView {
         if (log.isTraceEnabled()) {
             log.trace("handleEviction: evicting {} cause {}", notification.getKey(), notification.getCause());
         }
-    }
-
-    /**
-     * Remove all log entries that are less than the trim mark
-     */
-    public void gc(long trimMark) {
-        readCache.asMap().entrySet().removeIf(e -> e.getKey() < trimMark);
     }
 
     /**
@@ -208,7 +205,8 @@ public class AddressSpaceView extends AbstractView {
 
         for (int i = 0; i < numUnits; ++i) {
             try {
-                futures[i].get();
+                CompletableFuture future = futures[i];
+                future.get();
                 log.trace("sparseTrimmed one server[{}]", servers.get(i));
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -429,7 +427,7 @@ public class AddressSpaceView extends AbstractView {
                 List<Long> batch = getBatch(nextRead, addresses);
                 log.trace("read: request address {}, read batch {}", nextRead, batch);
                 Map<Long, ILogData> mapAddresses = this.read(batch, options);
-                data = mapAddresses.get(nextRead);
+                data = mapAddresses.getOrDefault(nextRead, LogData.COMPACTED);
             }
 
             return data;
@@ -621,11 +619,11 @@ public class AddressSpaceView extends AbstractView {
      * Cache list of returned data with given cache options.
      */
     private Map<Long, ILogData> checkForCompactedAddresses(Map<Long, ILogData> result, ReadOptions options) {
-        Collection<Long> compactedAddressses = new ArrayList<>();
+        Collection<Long> compactedAddresses = new ArrayList<>();
         for (Map.Entry<Long, ILogData> entry : result.entrySet()) {
             // Add compacted addresses to list
             if (!checkLogData(entry.getKey(), entry.getValue())) {
-                compactedAddressses.add(entry.getKey());
+                compactedAddresses.add(entry.getKey());
             } else {
                 if (options.isClientCacheable()) {
                     // After fetching a value, we need to insert it in the cache.
@@ -637,13 +635,12 @@ public class AddressSpaceView extends AbstractView {
             }
         }
 
-        result.keySet().removeAll(compactedAddressses);
-
+        result.keySet().removeAll(compactedAddresses);
         return result;
     }
 
     /**
-     * Checks whether a log entry is valid or not. If a read
+     * Checks whether a log entry is compacted or not. If a read
      * returns null, Empty, an exception will be
      * thrown.
      *
@@ -657,7 +654,7 @@ public class AddressSpaceView extends AbstractView {
                     + address + " on read");
         }
 
-        return logData.getType() != DataType.COMPACTED;
+        return !logData.isCompacted();
     }
 
     /**

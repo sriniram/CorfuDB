@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static org.corfudb.infrastructure.log.StreamLogParams.RECORDS_PER_SEGMENT;
+
 /**
  * A segment manger which manages stream and garbage segment mappings.
  * <p>
@@ -59,7 +61,7 @@ public class SegmentManager {
     private final Map<Long, CompactionMetadata> segmentCompactionMetadata = new ConcurrentHashMap<>();
 
     long getSegmentOrdinal(long globalAddress) {
-        return globalAddress / StreamLogParams.RECORDS_PER_SEGMENT;
+        return globalAddress / RECORDS_PER_SEGMENT;
     }
 
     private <T extends AbstractLogSegment> String getSegmentFilePath(

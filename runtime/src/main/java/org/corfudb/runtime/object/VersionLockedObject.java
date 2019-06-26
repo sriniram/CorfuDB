@@ -10,7 +10,9 @@ import org.corfudb.protocols.logprotocol.SMRRecordLocator;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.GarbageInformer;
 import org.corfudb.runtime.exceptions.NoRollbackException;
+import org.corfudb.runtime.exceptions.TrimmedException;
 import org.corfudb.runtime.exceptions.unrecoverable.UnrecoverableCorfuError;
+import org.corfudb.runtime.object.transactions.TransactionalContext;
 import org.corfudb.runtime.object.transactions.WriteSetSMRStream;
 import org.corfudb.runtime.view.Address;
 import org.corfudb.util.CorfuComponent;
@@ -28,6 +30,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -142,6 +146,11 @@ public class VersionLockedObject<T> {
      */
     private long syncTail = Address.NON_ADDRESS;
 
+    /**
+     * Corfu runtime
+     */
+    private final CorfuRuntime rt;
+
 
     /**
      * The VersionLockedObject maintains a versioned object which is backed by an ISMRStream,
@@ -163,7 +172,8 @@ public class VersionLockedObject<T> {
                                Map<String, IUndoFunction<T>> undoTargets,
                                Map<String, IGarbageIdentificationFunction> garbageTargets,
                                Set<String> resetSet,
-                               GarbageInformer garbageInformer) {
+                               GarbageInformer garbageInformer,
+                               CorfuRuntime rt) {
         this.smrStream = smrStream;
 
         this.upcallTargetMap = upcallTargets;
@@ -177,6 +187,7 @@ public class VersionLockedObject<T> {
         this.object = newObjectFn.get();
         this.pendingUpcalls = ConcurrentHashMap.newKeySet();
         this.upcallResults = new ConcurrentHashMap<>();
+        this.rt = rt;
 
         lock = new StampedLock();
     }
@@ -347,6 +358,13 @@ public class VersionLockedObject<T> {
                         rollbackObjectUnsafe(timestamp);
                     } catch (NoRollbackException nre) {
                         log.warn("SyncObjectUnsafe[{}] to {} failed {}", this, timestamp, nre);
+
+                        // This is just an optimization. It checks whether there is a TrimmedException after reset.
+                        // This check prevents unnecessary reset.
+                        if (getCompactionMark() > timestamp) {
+                            throw new TrimmedException();
+                        }
+
                         resetUnsafe();
                     }
                 }
@@ -376,6 +394,13 @@ public class VersionLockedObject<T> {
                     }
                 } catch (NoRollbackException nre) {
                     log.warn("Rollback[{}] to {} failed {}", this, timestamp, nre);
+
+                    // This is just an optimization. It checks whether there is a TrimmedException after reset.
+                    // This check prevents unnecessary reset.
+                    if (getCompactionMark() > timestamp) {
+                        throw new TrimmedException();
+                    }
+
                     resetUnsafe();
                 }
             }
@@ -462,7 +487,6 @@ public class VersionLockedObject<T> {
         object = newObjectFn.get();
         smrStream.reset();
         optimisticStream = null;
-        syncTail = Address.NON_ADDRESS;
     }
 
     /**
@@ -666,7 +690,11 @@ public class VersionLockedObject<T> {
 
                                 // flush garbage if there is garbage
                                 if (!garbageLocators.isEmpty()) {
-                                    garbageInformer.add(syncTail, garbageLocators);
+
+                                    // vlo prevent concurrent access
+                                    // to garbageReceivingQueue to maintain order by marker address.
+                                    garbageInformer.addUnsafe(syncTail, garbageLocators);
+
                                     garbageLocators.clear();
                                 }
                             }
@@ -700,7 +728,9 @@ public class VersionLockedObject<T> {
 
             // flush garbage if there is garbage
             if (!garbageLocators.isEmpty()) {
-                garbageInformer.add(syncTail, garbageLocators);
+                // vlo prevent concurrent access
+                // to garbageReceivingQueue to maintain order by marker address.
+                garbageInformer.addUnsafe(syncTail, garbageLocators);
             }
         }
     }
@@ -764,5 +794,9 @@ public class VersionLockedObject<T> {
         private  static Timer.Context getVloGcContext() {
             return MetricsUtils.getConditionalContext(metrics.timer(VLO_GC));
         }
+    }
+
+    private long getCompactionMark() {
+        return rt.getAddressSpaceView().getCompactionMark();
     }
 }

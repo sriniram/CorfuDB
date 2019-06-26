@@ -52,7 +52,6 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
             }
 
             thisRead = queue.pollFirst();
-
             ld = read(thisRead);
 
             if (queue == getCurrentContext().readQueue && ld != null) {
@@ -99,10 +98,8 @@ public class BackpointerStreamView extends AbstractQueuedStreamView {
 
             // Read the current address
             ILogData d;
-
             log.trace("followBackpointers: readAddress[{}]", currentAddress);
             d = read(currentAddress, readStartTime);
-
 
             // If it contains the stream we are interested in
             if (d.containsStream(streamId)) {
