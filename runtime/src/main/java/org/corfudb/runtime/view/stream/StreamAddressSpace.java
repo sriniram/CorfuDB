@@ -149,15 +149,17 @@ public class StreamAddressSpace {
      */
     public Roaring64NavigableMap getAddressesInRange(StreamAddressRange range) {
         Roaring64NavigableMap addressesInRange = new Roaring64NavigableMap();
-        if (range.getStart() > range.getEnd()) {
-            addressMap.forEach(address -> {
-                // Because our search is referenced to the stream's tail => (end < start]
-                if (address > range.getEnd() && address <= range.getStart()) {
-                    addressesInRange.add(address);
-                }
-            });
-        }
+        LongIterator iterator = addressMap.getReverseLongIterator();
 
+        while (iterator.hasNext()) {
+            long val = iterator.next();
+            if (val > range.getEnd() && val <= range.getStart()) {
+                addressesInRange.add(val);
+            } else if (val < range.getEnd()) {
+                break;
+            }
+        }
+        
         log.trace("getAddressesInRange[{}]: address map in range [{}-{}] has a total of {} addresses.",
                 Utils.toReadableId(range.getStreamID()), range.getEnd(),
                 range.getStart(), addressesInRange.getLongCardinality());
