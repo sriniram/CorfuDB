@@ -22,9 +22,12 @@ import java.util.stream.Stream;
 import lombok.Getter;
 import org.corfudb.annotations.Accessor;
 import org.corfudb.annotations.CorfuObject;
+import org.corfudb.annotations.DontInstrument;
 import org.corfudb.annotations.TransactionalMethod;
 import org.corfudb.runtime.object.ICorfuExecutionContext;
 import org.corfudb.runtime.object.ICorfuSMR;
+import org.corfudb.protocols.logprotocol.SMRRecordLocator;
+
 
 /**
  * Created by mwei on 1/7/16.
@@ -719,5 +722,30 @@ public class SMRMap<K, V>
     @Override
     public Stream<Entry<K, V>> entryStream() {
         return entrySet().stream();
+    }
+
+    @Override
+    @TransactionalMethod
+    public void putAll(Map<? extends K, ? extends V> m) {
+        m.entrySet().stream().forEach(entry -> put(entry.getKey(), entry.getValue()));
+    }
+
+    @DontInstrument
+    @Override
+    public List<Object> identifyPutGarbage(Object locator, K key, V value) {
+        return new ArrayList<>(locatorStore.addUnsafe(key, (SMRRecordLocator) locator));
+    }
+
+    @DontInstrument
+    @Override
+    public List<Object> identifyClearGarbage(Object locator) {
+        return new ArrayList<>(locatorStore.clearUnsafe());
+    }
+
+    @DontInstrument
+    @Override
+    public List<Object> identifyRemoveGarbage(Object locator, K key) {
+        // TODO(Xin): Distinguish put and remove in the future
+        return new ArrayList<>(locatorStore.addUnsafe(key, (SMRRecordLocator) locator));
     }
 }
