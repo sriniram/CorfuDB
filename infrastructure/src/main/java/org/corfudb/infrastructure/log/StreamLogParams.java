@@ -5,9 +5,6 @@ import lombok.Builder.Default;
 import lombok.ToString;
 import org.corfudb.format.Types;
 import org.corfudb.infrastructure.log.CompactionPolicy.CompactionPolicyType;
-import org.corfudb.infrastructure.log.compression.Codec;
-
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -42,9 +39,6 @@ public class StreamLogParams {
 
     @Default
     public double logSizeQuotaPercentage;
-
-    @Default
-    public Codec.Type compressionCodec;
     // End region
 
     // Region: compactor parameters

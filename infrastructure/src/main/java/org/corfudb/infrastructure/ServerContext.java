@@ -11,11 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.corfudb.comm.ChannelImplementation;
 import org.corfudb.infrastructure.datastore.DataStore;
 import org.corfudb.infrastructure.datastore.KvDataStore.KvRecord;
-import org.corfudb.infrastructure.log.CompactionPolicy;
 import org.corfudb.infrastructure.log.CompactionPolicy.CompactionPolicyType;
 import org.corfudb.infrastructure.log.StreamLogDataStore;
 import org.corfudb.infrastructure.log.StreamLogParams;
-import org.corfudb.infrastructure.log.compression.Codec;
 import org.corfudb.infrastructure.paxos.PaxosDataStore;
 import org.corfudb.protocols.wireprotocol.PriorityLevel;
 import org.corfudb.protocols.wireprotocol.failuredetector.FailureDetectorMetrics;
@@ -700,7 +698,6 @@ public class ServerContext implements AutoCloseable {
                 .logPath(getServerConfig(String.class, "--log-path"))
                 .verifyChecksum(!getServerConfig(Boolean.class, "--no-verify"))
                 .logSizeQuotaPercentage(Double.parseDouble(getServerConfig(String.class, "--log-size-quota-percentage")))
-                .compressionCodec(Codec.Type.valueOf(getServerConfig(String.class, "--compression-codec")))
                 .compactionPolicyType(CompactionPolicyType.valueOf(getServerConfig(String.class, "--compaction-policy")))
                 .compactionInitialDelayMin(Integer.parseInt(getServerConfig(String.class, "--compaction-initial-delay")))
                 .compactionPeriodMin(Integer.parseInt(getServerConfig(String.class, "--compaction-period")))

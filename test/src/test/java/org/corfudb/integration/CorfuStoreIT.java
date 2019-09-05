@@ -200,12 +200,6 @@ public class CorfuStoreIT extends AbstractIT {
                 .addOpenOption(ObjectOpenOption.NO_CACHE)
                 .open();
 
-        mcw.addMap(corfuTable);
-        mcw.addMap(tableRegistry);
-        Token trimPoint = mcw.appendCheckpoints(runtime, "checkpointer");
-
-        runtime.getAddressSpaceView().prefixTrim(trimPoint);
-        runtime.getAddressSpaceView().gc();
         runtime.shutdown();
 
         // PHASE 3
