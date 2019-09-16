@@ -29,6 +29,7 @@ import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.C
 import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.CHECKPOINTED_STREAM_START_LOG_ADDRESS;
 import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.CHECKPOINT_ID;
 import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.CHECKPOINT_TYPE;
+import static org.corfudb.protocols.wireprotocol.IMetadata.LogUnitMetadataType.PAYLOAD_SIZE;
 
 /**
  * Created by mwei on 9/18/15.
@@ -242,6 +243,34 @@ public interface IMetadata {
     }
 
     /**
+     * Set the un-compressed, serialized payload size.
+     *
+     * @param size payload size in bytes
+     */
+    default void setPayloadSize(Integer size) {
+        getMetadataMap().put(LogUnitMetadataType.PAYLOAD_SIZE, size);
+    }
+
+    /**
+     * Get the un-compressed, serialized payload size.
+     *
+     * @return payload size
+     */
+    default Integer getPayloadSize() {
+        return (Integer) getMetadataMap().getOrDefault(LogUnitMetadataType.PAYLOAD_SIZE, 0);
+    }
+
+    /**
+     * Check if the entry has payload size set.
+     * If the entry is never serialized, this would return false;
+     *
+     * @return if the entry has payload size set
+     */
+    default boolean hasPayloadSize() {
+        return getMetadataMap().containsKey(LogUnitMetadataType.PAYLOAD_SIZE);
+    }
+
+    /**
      * Sets the compressed flag to true. This flag is used in order to avoid sthe server re-encoding an already
      * encoded payload as the code path is shared by server and runtime.
      */
@@ -262,7 +291,8 @@ public interface IMetadata {
         THREAD_ID(11, TypeToken.of(Long.class)),
         EPOCH(12, TypeToken.of(Long.class)),
         PAYLOAD_CODEC(13, TypeToken.of(Codec.Type.class)),
-        COMPRESSED(14, TypeToken.of(Boolean.class))
+        COMPRESSED(14, TypeToken.of(Boolean.class)),
+        PAYLOAD_SIZE(15, TypeToken.of(Integer.class))
         ;
         final int type;
         @Getter
