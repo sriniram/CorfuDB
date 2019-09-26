@@ -112,6 +112,27 @@ public abstract class AbstractQueuedStreamView extends
      */
     protected abstract ILogData removeFromQueue(NavigableSet<Long> queue);
 
+    @Override
+    public void gc(long trimMark) {
+        // GC stream only if the pointer is ahead from the trim mark,
+        if (getCurrentContext().getGlobalPointer() >= trimMark) {
+            log.debug("gc[{}]: start GC on stream {} for trim mark {}", this, this.getId(),
+                    trimMark);
+            // Remove all the entries that are strictly less than
+            // the trim mark
+            getCurrentContext().readQueue.headSet(getCurrentContext().getGcTrimMark()).clear();
+            getCurrentContext().resolvedQueue.headSet(getCurrentContext().getGcTrimMark()).clear();
+
+            if (!getCurrentContext().resolvedQueue.isEmpty()) {
+                getCurrentContext().minResolution = getCurrentContext()
+                        .resolvedQueue.first();
+            }
+        } else {
+            log.debug("gc[{}]: GC not performed on stream {}. Global pointer {} is below trim mark {}",
+                    this, this.getId(), getCurrentContext().getGlobalPointer(), trimMark);
+        }
+    }
+
     /**
      * {@inheritDoc}
      *

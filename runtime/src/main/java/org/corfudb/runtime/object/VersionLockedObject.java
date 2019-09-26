@@ -193,6 +193,23 @@ public class VersionLockedObject<T> {
     }
 
     /**
+     * Run gc on this object. Since the stream that backs this object is not thread-safe:
+     * synchronization between gc and external object access is needed.
+     */
+    public void gc(long trimMark) {
+        long ts = 0;
+
+        try (Timer.Context vloGcDuration = VloMetricsHelper.getVloGcContext()) {
+            ts = lock.writeLock();
+            pendingUpcalls.removeIf(e -> e < trimMark);
+            upcallResults.entrySet().removeIf(e -> e.getKey() < trimMark);
+            smrStream.gc(trimMark);
+        } finally {
+            lock.unlock(ts);
+        }
+    }
+
+    /**
      * Access the internal state of the object, trying first to optimistically access
      * the object, then obtaining a write lock the optimistic access fails.
      *
@@ -371,6 +388,7 @@ public class VersionLockedObject<T> {
                 // Now sync the regular log
                 syncStreamUnsafe(smrStream, timestamp);
                 // It's possible that due to reset,
+                // It's possible that due to reset,
                 // the optimistic stream is no longer
                 // present. Restore it.
                 optimisticStream = currentOptimisticStream;
@@ -397,7 +415,7 @@ public class VersionLockedObject<T> {
 
                     // This is just an optimization. It checks whether there is a TrimmedException after reset.
                     // This check prevents unnecessary reset.
-                    if (getCompactionMark() > timestamp) {
+                    if (Address.isAddress(timestamp) && getCompactionMark() > timestamp) {
                         throw new TrimmedException();
                     }
 
@@ -563,12 +581,15 @@ public class VersionLockedObject<T> {
             throw new RuntimeException("Unknown upcall " + record.getSMRMethod());
         }
 
-        // Calculate an undo record if no undo record is present -OR- there
+        // Do NOT calculate unnecessary undo records when record global
+        // address is smaller than compaction mark. For other cases,
+        // calculate an undo record if no undo record is present -OR- there
         // is an optimistic record, (which has no valid global address).
         // In the case of optimistic entries, the snapshot may have changed
         // since the last time they were applied, so we need to recalculate
         // undo -- this is the case without snapshot isolation.
-        if (!record.isUndoable() || !Address.isAddress(record.getGlobalAddress())) {
+        if (record.getGlobalAddress() >= rt.getAddressSpaceView().getCompactionMark() &&
+                (!record.isUndoable() || !Address.isAddress(record.getGlobalAddress()))) {
             // Can we generate an undo record?
             IUndoRecordFunction<T> undoRecordTarget =
                     undoRecordFunctionMap.get(record.getSMRMethod());

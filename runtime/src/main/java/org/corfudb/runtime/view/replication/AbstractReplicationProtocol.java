@@ -75,9 +75,6 @@ public abstract class AbstractReplicationProtocol implements IReplicationProtoco
      */
     protected void updateCompactionMark(CorfuRuntime runtime, long compactionMark) {
         // Compaction mark could only monotonically grow.
-        if (runtime.getAddressSpaceView().getCompactionMark() < compactionMark) {
-            runtime.getAddressSpaceView().setCompactionMark(compactionMark);
-            log.trace("Compaction mark is updated to {}", compactionMark);
-        }
+        runtime.getAddressSpaceView().updateCompactionMark(compactionMark);
     }
 }

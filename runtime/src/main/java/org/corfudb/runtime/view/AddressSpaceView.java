@@ -25,15 +25,15 @@ import org.corfudb.protocols.wireprotocol.TailsResponse;
 import org.corfudb.protocols.wireprotocol.Token;
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.clients.LogUnitClient;
+
 import org.corfudb.runtime.exceptions.NetworkException;
 import org.corfudb.runtime.exceptions.OverwriteCause;
 import org.corfudb.runtime.exceptions.OverwriteException;
 import org.corfudb.runtime.exceptions.QuotaExceededException;
+import org.corfudb.runtime.exceptions.RetryExhaustedException;
 import org.corfudb.runtime.exceptions.StaleTokenException;
 import org.corfudb.runtime.exceptions.WriteSizeException;
 import org.corfudb.runtime.exceptions.WrongEpochException;
-import org.corfudb.runtime.exceptions.RetryExhaustedException;
-
 import org.corfudb.util.CFUtils;
 import org.corfudb.util.CorfuComponent;
 import org.corfudb.util.MetricsUtils;
@@ -78,9 +78,14 @@ public class AddressSpaceView extends AbstractView {
 
     final private long defaultMaxCacheEntries = 5000;
 
+    static final private Duration GC_INTERVAL = Duration.ofMinutes(30);
+
     @Getter
-    @Setter
     private volatile long compactionMark = Address.NON_ADDRESS;
+
+    private volatile long lastTrimMark = Address.NON_ADDRESS;
+
+    private volatile long lastTrimTime = -1L;
 
     private final ReadOptions defaultReadOptions = ReadOptions.builder()
             .waitForHole(true)
@@ -145,6 +150,13 @@ public class AddressSpaceView extends AbstractView {
      */
     public void resetCaches() {
         readCache.invalidateAll();
+    }
+
+    /**
+     * Remove all log entries that are less than the trim mark
+     */
+    public void gc(long trimMark) {
+        readCache.asMap().entrySet().removeIf(e -> e.getKey() < trimMark);
     }
 
     /**
@@ -723,4 +735,43 @@ public class AddressSpaceView extends AbstractView {
     Cache<Long, ILogData> getReadCache() {
         return readCache;
     }
+
+    /**
+     * Update compaction mark if the new compactionMark is greater than the existing one.
+     * When the compaction mark grows, garbage
+     * @param compactionMark  compaction mark
+     */
+    public void updateCompactionMark(long compactionMark) {
+        // Compaction mark could only monotonically grow.
+        if (this.compactionMark < compactionMark) {
+            this.compactionMark = compactionMark;
+
+            log.trace("Compaction mark is updated to {}", compactionMark);
+
+            // garbage collection is trigger only when compaction mark grows, therefore
+            // triggerGC would NOT be invoked too frequently.
+            triggerGC();
+        }
+    }
+
+    private void triggerGC() {
+        if (Address.nonAddress(lastTrimMark))  {
+            lastTrimMark = compactionMark;
+            lastTrimTime = System.currentTimeMillis();
+        } else {
+            long ts = System.currentTimeMillis();
+
+            // The interval between two consecutive garbage collections should be greater
+            // than a cool down time
+            if (ts - lastTrimTime > GC_INTERVAL.toMillis()) {
+
+                // garbage collection is deferred for a cycle to prevent evict information
+                // which would be used shortly.
+                runtime.getGarbageCollector().gc(lastTrimMark);
+                lastTrimTime = ts;
+                lastTrimMark = compactionMark;
+            }
+        }
+    }
+
 }

@@ -109,6 +109,9 @@ public abstract class AbstractTransactionalContext implements
     @Getter(lazy = true)
     private final Token snapshotTimestamp = obtainSnapshotTimestamp();
 
+    @Getter
+    private long snapshotCompactionMark;
+
     /**
      * The address that the transaction was committed at.
      */
@@ -269,10 +272,12 @@ public abstract class AbstractTransactionalContext implements
     private Token obtainSnapshotTimestamp() {
         final AbstractTransactionalContext parentCtx = getParentContext();
         final Token txnBuilderTs = getTransaction().getSnapshot();
+        CorfuRuntime rt = getTransaction().getRuntime();
         if (parentCtx != null) {
             // If we're in a nested transaction, the first read timestamp
             // needs to come from the root.
             Token parentTimestamp = parentCtx.getSnapshotTimestamp();
+
             log.trace("obtainSnapshotTimestamp: inheriting parent snapshot" +
                     " SnapshotTimestamp[{}] {}", this, parentTimestamp);
             return parentTimestamp;
@@ -283,11 +288,11 @@ public abstract class AbstractTransactionalContext implements
         } else {
             // Otherwise, fetch a read token from the sequencer the linearize
             // ourselves against.
-            Token timestamp = getTransaction()
-                    .getRuntime()
+            Token timestamp = rt
                     .getSequencerView()
                     .query()
                     .getToken();
+
             log.trace("obtainSnapshotTimestamp: sequencer SnapshotTimestamp[{}] {}", this, timestamp);
             return timestamp;
         }

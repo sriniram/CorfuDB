@@ -38,6 +38,9 @@ public class StreamsView extends AbstractView {
      */
     public static final String CHECKPOINT_SUFFIX = "_cp";
 
+    @Getter
+    Multimap<UUID, IStreamView> streamCache = Multimaps.synchronizedMultimap(HashMultimap.create());
+
     public StreamsView(final CorfuRuntime runtime) {
         super(runtime);
     }
@@ -74,6 +77,7 @@ public class StreamsView extends AbstractView {
     public IStreamView get(UUID stream, StreamOptions options) {
         IStreamView streamView = runtime.getLayoutView().getLayout().getLatestSegment()
                 .getReplicationMode().getStreamView(runtime, stream, options);
+        streamCache.put(stream, streamView);
         return streamView;
     }
 
@@ -82,6 +86,17 @@ public class StreamsView extends AbstractView {
                 .getReplicationMode().getUnsafeStreamView(runtime, stream, options);
     }
 
+    /**
+     * Run garbage collection on all opened streams. Note that opened
+     * unsafe streams will be excluded (because its unsafe for the garbage
+     * collector thread to operate on them while being used by a different
+     * thread).
+     */
+    public void gc(long trimMark) {
+        for (IStreamView streamView : getStreamCache().values()) {
+            streamView.gc(trimMark);
+        }
+    }
 
     /**
      * Append to multiple streams simultaneously, possibly providing

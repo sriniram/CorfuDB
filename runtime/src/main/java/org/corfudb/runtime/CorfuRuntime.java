@@ -557,6 +557,9 @@ public class CorfuRuntime {
     @Getter
     public volatile UUID clusterId;
 
+    @Getter
+    final ViewsGarbageCollector garbageCollector = new ViewsGarbageCollector(this);
+
     /**
      * Notifies that the runtime is no longer used
      * and async retries to fetch the layout can be stopped.
@@ -736,6 +739,8 @@ public class CorfuRuntime {
         isShutdown = true;
         runtimeExecutor.shutdownNow();
         garbageInformer.stop();
+        garbageCollector.stop();
+
         if (layout != null) {
             try {
                 layout.cancel(true);

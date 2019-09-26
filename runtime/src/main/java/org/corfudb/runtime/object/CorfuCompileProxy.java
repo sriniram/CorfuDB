@@ -198,7 +198,8 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
             // Linearize this read against a timestamp
             final long timestamp = rt.getSequencerView()
                             .query(getStreamID());
-            log.debug("Access[{}] conflictObj={} version={}", this, conflictObject, timestamp);
+            log.debug("Access[{}] conflictObj={} version={}",
+                    this, conflictObject, timestamp);
 
             try {
                 return underlyingObject.access(o -> o.getVersionUnsafe() >= timestamp
@@ -208,11 +209,6 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
             } catch (TrimmedException te) {
                 log.warn("accessInner: Encountered a trim exception while accessing version {} on attempt {}",
                         timestamp, x);
-                // We encountered a TRIM during sync, reset the object
-                underlyingObject.update(o -> {
-                    o.resetUnsafe();
-                    return null;
-                });
             }
         }
 
@@ -385,6 +381,7 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
                 if (e.getAbortCause() == AbortCause.NETWORK) {
                     if (TransactionalContext.getCurrentContext() != null) {
                         TransactionalContext.getCurrentContext().abortTransaction(e);
+
                         TransactionalContext.removeContext();
                         throw e;
                     }
@@ -477,6 +474,7 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
 
     private void abortTransaction(Exception e) {
         final AbstractTransactionalContext context = TransactionalContext.getCurrentContext();
+
         TransactionalContext.removeContext();
 
         // Base case: No need to translate, just throw the exception as-is.
