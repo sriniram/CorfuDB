@@ -3,11 +3,14 @@ package org.corfudb.runtime.object;
 import static java.lang.Long.min;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.corfudb.common.metrics.loggers.StatsLogger;
 import org.corfudb.protocols.logprotocol.SMREntry;
 import org.corfudb.protocols.wireprotocol.Token;
 import org.corfudb.protocols.wireprotocol.TokenResponse;
@@ -116,6 +119,10 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
     private final Counter counterTxnRetry1;
     private final Counter counterTxnRetryN;
 
+    private final Meter accessMeter;
+    private final Meter updateMeter;
+    private final Histogram updateHistogram;
+
     /**
      * Correctness Logging
      */
@@ -166,6 +173,11 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
         counterAccessLocked = metrics.counter(mpObj + "access-locked");
         counterTxnRetry1 = metrics.counter(mpObj + "txn-first-retry");
         counterTxnRetryN = metrics.counter(mpObj + "txn-extra-retries");
+
+        StatsLogger statsLogger = CorfuRuntime.getStreamStatsLogger().getSubLogger(streamID.toString());
+        accessMeter = statsLogger.getRegistry().meter("access-meter");
+        updateMeter = statsLogger.getRegistry().meter("update-meter");
+        updateHistogram = statsLogger.getRegistry().histogram("update-histogram");
     }
 
     /**
@@ -184,6 +196,7 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
                         Object[] conflictObject) {
         boolean isEnabled = MetricsUtils.isMetricsCollectionEnabled();
         try (Timer.Context context = MetricsUtils.getConditionalContext(isEnabled, timerAccess)) {
+//            accessMeter.mark();
             return accessInner(accessMethod, conflictObject, isEnabled);
         }
     }
@@ -233,6 +246,8 @@ public class CorfuCompileProxy<T> implements ICorfuSMRProxyInternal<T> {
     public long logUpdate(String smrUpdateFunction, final boolean keepUpcallResult,
                           Object[] conflictObject, Object... args) {
         try (Timer.Context context = MetricsUtils.getConditionalContext(timerLogWrite)) {
+//            updateMeter.mark();
+//            updateHistogram.update(MetricsUtils.sizeOf.deepSizeOf(args));
             return logUpdateInner(smrUpdateFunction, keepUpcallResult, conflictObject, args);
         }
     }

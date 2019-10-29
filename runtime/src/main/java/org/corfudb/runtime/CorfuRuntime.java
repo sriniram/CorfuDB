@@ -14,6 +14,7 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.corfudb.comm.ChannelImplementation;
+import org.corfudb.common.metrics.loggers.StatsLogger;
 import org.corfudb.protocols.wireprotocol.MsgHandlingFilter;
 import org.corfudb.protocols.wireprotocol.PriorityLevel;
 import org.corfudb.protocols.wireprotocol.VersionInfo;
@@ -587,6 +588,9 @@ public class CorfuRuntime {
 
     @Getter
     private static final MetricRegistry defaultMetrics = new MetricRegistry();
+
+    @Getter
+    private static final StatsLogger streamStatsLogger = new StatsLogger("corfu.runtime.stream");
 
     /**
      * Register SystemDownHandler.
