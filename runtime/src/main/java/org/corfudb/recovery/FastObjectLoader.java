@@ -478,6 +478,8 @@ public class FastObjectLoader {
                 break;
             case RANK_ONLY:
                 break;
+            case GARBAGE:
+                break;
             case COMPACTED:
                 break;
             default:
@@ -533,7 +535,6 @@ public class FastObjectLoader {
                                 RecoveryUtils.fastLoaderReadOptions));
 
                 invokeNecromancer(range, logDataProcessor);
-
             } catch (Exception ex) {
                 log.warn("Error loading data", ex);
                 handleRetry();
