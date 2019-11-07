@@ -1089,8 +1089,6 @@ public class CorfuRuntime {
             fastLoader.loadMaps();
         }
 
-        garbageInformer.start();
-
         return this;
     }
 
