@@ -9,7 +9,6 @@ import org.corfudb.protocols.wireprotocol.ILogData;
 import org.corfudb.protocols.wireprotocol.IMetadata;
 import org.corfudb.protocols.wireprotocol.LogData;
 import org.corfudb.protocols.wireprotocol.Token;
-
 import org.corfudb.runtime.CorfuRuntime;
 import org.corfudb.runtime.MultiCheckpointWriter;
 import org.corfudb.runtime.clients.LogUnitClient;
@@ -23,6 +22,7 @@ import org.corfudb.runtime.object.VersionLockedObject;
 import org.corfudb.runtime.object.transactions.TransactionType;
 import org.corfudb.runtime.view.AbstractViewTest;
 import org.corfudb.runtime.view.SMRObject;
+import org.corfudb.util.Utils;
 import org.corfudb.util.serializer.ISerializer;
 import org.corfudb.util.serializer.Serializers;
 import org.junit.Before;
@@ -169,9 +169,14 @@ public class FastObjectLoaderTest extends AbstractViewTest {
 
     @Test
     public void canReloadMapsAfterSparseTrim() throws Exception {
-        populateMaps(2, getDefaultRuntime(), CorfuTable.class, true, RECORDS_PER_SEGMENT + 1);
+        CorfuRuntime rt = getDefaultRuntime();
+        populateMaps(2, rt, CorfuTable.class, true, RECORDS_PER_SEGMENT + 1);
 
-        startCompaction(getRuntime(), getLogUnit(SERVERS.PORT_0));
+        // Update committed tail so that compactor can run.
+        long globalTail = rt.getSequencerView().query().getSequence();
+        Utils.updateCommittedTail(rt.getLayoutView().getLayout(), rt, globalTail);
+
+        startCompaction(rt, getLogUnit(SERVERS.PORT_0));
         CorfuRuntime rt2 = Helpers.createNewRuntimeWithFastLoader(getDefaultConfigurationString());
         assertThatMapsAreBuilt(rt2);
     }
