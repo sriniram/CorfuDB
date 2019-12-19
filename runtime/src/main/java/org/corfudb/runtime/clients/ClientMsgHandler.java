@@ -70,19 +70,20 @@ public class ClientMsgHandler {
      */
     @SuppressWarnings("unchecked")
     public boolean handle(CorfuMsg message, ChannelHandlerContext ctx) {
-        if (handlerMap.containsKey(message.getMsgType())) {
-            try {
-                Object ret = handlerMap.get(message.getMsgType())
-                        .handle(message, ctx, client.getRouter());
-                if (ret != null) {
-                    client.getRouter().completeRequest(message.getRequestID(), ret);
-                }
-            } catch (Exception ex) {
-                client.getRouter().completeExceptionally(message.getRequestID(), ex);
-            }
-            return true;
+        if (!handlerMap.containsKey(message.getMsgType())) {
+            return false;
         }
-        return false;
+
+        try {
+            Object ret = handlerMap.get(message.getMsgType())
+                    .handle(message, ctx, client.getRouter());
+            if (ret != null) {
+                client.getRouter().completeRequest(message.getRequestID(), ret);
+            }
+        } catch (Exception ex) {
+            client.getRouter().completeExceptionally(message.getRequestID(), ex);
+        }
+        return true;
     }
 
 
