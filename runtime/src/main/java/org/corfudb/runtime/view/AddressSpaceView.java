@@ -48,8 +48,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -66,6 +71,9 @@ public class AddressSpaceView extends AbstractView {
     private final static long DEFAULT_MAX_CACHE_ENTRIES = 5000;
     private final static boolean NO_THROW = false;
 
+    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    ConcurrentHashMap<Long, CompletableFuture<ILogData>> work = new ConcurrentHashMap<>();
+
     /**
      * A cache for read results.
      */
@@ -76,12 +84,13 @@ public class AddressSpaceView extends AbstractView {
             .clientCacheable(true)
             .serverCacheable(true)
             .build();
-
     /**
      * Constructor for the Address Space View.
      */
     public AddressSpaceView(@Nonnull final CorfuRuntime runtime) {
         super(runtime);
+
+        executorService.scheduleAtFixedRate(this::processQueue, 0, 50, TimeUnit.MICROSECONDS);
 
         CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder();
 
@@ -663,6 +672,26 @@ public class AddressSpaceView extends AbstractView {
         }
 
         return true;
+    }
+
+    public void processQueue() {
+        Set<Entry<Long, CompletableFuture<ILogData>>> entries = work.entrySet();
+        Set<Long> addresses = entries.stream().map(Entry::getKey).collect(Collectors.toSet());
+        Map<Long, ILogData> values = read(addresses);
+        for (Entry<Long, ILogData> value : values.entrySet()) {
+            work.get(value.getKey()).complete(value.getValue());
+        }
+        work.rem
+    }
+
+
+    private  @Nonnull
+    ILogData fetch2(final long address) {
+        CompletableFuture<ILogData> result = new CompletableFuture<>();
+        CompletableFuture<ILogData> previous = work.putIfAbsent(address, result);
+        if (address % 100 == 0) System.err.println(work.size());
+        if (previous != null) result = previous;
+        return CFUtils.getUninterruptibly(result);
     }
 
     /**
